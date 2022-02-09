@@ -1,75 +1,98 @@
-//render dogs
-
-function renderDog(el) {
-  //create span tag for each el with dog name
-  const dogSpan = document.createElement("span");
-  dogSpan.innerHTML = el.name;
-  //dogBar functionality
-  dogSpan.addEventListener("click", () => {
-    document.querySelector("#dog-info").innerHTML = `
-    <img src="${el.image}" />
-    <h2>${el.name}</h2>
-    <button id = "dog-Button">${
-      el.isGoodDog ? "Good dog!" : "Bad dog!"
-    }</button>
-  `;
-    //good dog bad dog toggle (PATCH API request)
-    document.getElementById("dog-Button").addEventListener("click", () => {
-      el.isGoodDog = !el.isGoodDog;
-
-      document.getElementById("dog-Button").textContent =
-        el.isGoodDog === true ? "Good dog!" : "Bad dog!";
-      updateDoggo(el);
-    });
-  });
-
-  document.getElementById("dog-bar").appendChild(dogSpan);
-}
-
-//dog button functionality
-
-//fetch API
-function getAPI() {
+//global dom Nodes & constants
+const insertDogsHere = document.getElementById("dog-bar");
+const insertDogInfoHere = document.getElementById("dog-info");
+const filterButton = document.getElementById("good-dog-filter");
+let filterButtonState = false; //off
+// filter button functionality
+filterButton.addEventListener("click", () => {
+  filterButtonState = !filterButtonState;
+  filterButton.innerText = filterButtonState
+    ? "Filter good dogs: ON"
+    : "Filter good dogs: OFF";
+});
+//fetch dog API
+function fetchDogs() {
   fetch("http://localhost:3000/pups")
     .then((response) => response.json())
     .then((data) => {
-      console.log("Success:", data);
-      initialize(data);
+      console.log("Success:");
+      //if successful initialize data
+      initializeData(data);
     })
     .catch((error) => {
       console.error("Error:", error);
     });
 }
-
-//PATCH Request
-function updateDoggo(dogObj) {
-  fetch(` http://localhost:3000/pups/${dogObj.id}`, {
-    method: "PATCH",
+//patch dogOBJ
+function patchDogObj(dogObj) {
+  fetch(`http://localhost:3000/pups/${dogObj.id}`, {
+    method: "PATCH", // or 'PUT'
     headers: {
       "Content-Type": "application/json",
     },
     body: JSON.stringify(dogObj),
   })
-    .then((resp) => resp.json())
+    .then((response) => response.json())
     .then((data) => {
       console.log("Success:", data);
     })
-    .catch((err) => {
-      console.log("Error:", error);
+    .catch((error) => {
+      console.error("Error:", error);
     });
+}
+//initialize data
+function initializeData(dogData) {
+  //cycle through the json data (an array of objects) & render each object onto the DOM
+  dogData.forEach((dog) => {
+    renderDogs(dog);
+  });
+}
+
+//render Dogs
+function renderDogs(dogObj) {
+  //create individual dog Span
+  const dogSpan = document.createElement("span");
+  //place name into new span element
+  dogSpan.innerHTML = dogObj.name;
+  //add click functionality to each span
+  dogSpan.addEventListener("click", () => {
+    displaySelected(dogObj);
+  });
+  //append dog spans into the dog-bar div
+  insertDogsHere.appendChild(dogSpan);
+}
+
+function displaySelected(dogObj) {
+  let dogProp = dogObj.isGoodDog;
   console.log(dogObj);
+  console.log(dogObj.image, dogObj.name, dogObj.isGoodDog);
+  //create dog Display
+  let dogInfo = `
+  <img src="${dogObj.image}" />
+<h2>${dogObj.name}</h2>
+<button id = "good-bad-dog-button">${
+    dogObj.isGoodDog ? "Good Dog!" : "Bad Dog!"
+  }</button>`;
+
+  //innerHTML dogInfo into the display container
+  insertDogInfoHere.innerHTML = dogInfo;
+  document
+    .getElementById("good-bad-dog-button")
+    .addEventListener("click", () => {
+      console.log("clicked");
+      goodDogButtonFunction(dogObj);
+      // updateDogJSON(dogObj);
+    });
 }
 
-//filter
-
-function initialize(data) {
-  // loop through array of Objs
-  //   document.querySelector("#good-dog-filter").addEventListener("click", () => {
-  //     console.log(data)
-  //     let toggle = "OFF"
-  //     document.querySelector("#good-dog-filter").textContent = `Filter good dogs: ${toggle}`
-  //   });
-  data.forEach((el) => renderDog(el));
+//updates button name when clicked
+function goodDogButtonFunction(dogObj) {
+  dogObj.isGoodDog = !dogObj.isGoodDog;
+  document.getElementById("good-bad-dog-button").innerText = dogObj.isGoodDog
+    ? "Good Dog!"
+    : "Bad Dog!";
+  patchDogObj(dogObj);
 }
 
-getAPI();
+//call to fetchAPI and initiate the app
+fetchDogs();
